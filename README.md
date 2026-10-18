@@ -68,6 +68,19 @@ Configurar un tiempo máximo breve, por ejemplo 60 segundos de ejecución. Ese t
 
 Un estado `Accepted` no prueba ejecución. Esperar evidencia de entrega, estado de ejecución, código de salida y respuesta. La ausencia de respuesta tampoco prueba por sí sola que el comando haya terminado o fallado.
 
+## Alternativa: sesión SSH administrada de Bastion
+
+Cuando el agente y el plugin Bastion estén disponibles, evaluar una sesión SSH administrada. Esta vía requiere una VM activa, usuario del sistema válido y conectividad entre Bastion y la VM. La posibilidad de recuperar acceso con una clave nueva debe comprobarse en el entorno; crear la sesión no demuestra autenticación.
+
+1. Habilitar el plugin Bastion y verificar su estado en Oracle Cloud Agent.
+2. Crear un bastion temporal en la red de la VM. Limitar la allowlist a la IP pública del administrador con prefijo `/32`; mantener SOCKS5 desactivado si no es necesario.
+3. Limitar la duración máxima a 30 minutos.
+4. Crear una sesión de tipo **Managed SSH**, con el usuario correcto y exclusivamente la nueva clave pública. Verificar la instancia y la dirección privada de destino.
+5. Esperar a que la sesión esté activa y obtener su comando SSH desde la consola. Sustituir el marcador de clave por la ruta local de la clave privada.
+6. Verificar la identidad del servidor y demostrar autenticación antes de instalar la clave de forma permanente.
+
+Al concluir, eliminar la sesión y el bastion temporales y restaurar el estado anterior del plugin si se habilitó solo para recuperar acceso. No ampliar la allowlist a todo Internet para resolver un fallo de conexión.
+
 ## 4. Instalar la nueva clave pública
 
 Continuar únicamente si se ha confirmado un método administrativo autorizado y suficiente:
@@ -116,6 +129,8 @@ Revisar también los metadatos de commits, archivos preparados para commit e his
 - [Running Commands on an Instance](https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/runningcommands.htm)
 - [Working with Instances: políticas de Run Command](https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/instances.htm#permissions)
 - [Troubleshooting the SSH Connection](https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/troubleshooting-ssh-connection.htm)
+- [Creating a Managed SSH Session in Bastion](https://docs.oracle.com/en-us/iaas/Content/Bastion/Tasks/create-session-managed-ssh.htm)
+- [Connecting to a Managed SSH Session](https://docs.oracle.com/en-us/iaas/Content/Bastion/Tasks/connect-managed-ssh.htm)
 - [Always Free Resources](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm)
 
 Consultar las versiones vigentes de estas páginas antes de aplicar el procedimiento.
