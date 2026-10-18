@@ -1,0 +1,20 @@
+# No incluir material de acceso ni datos del entorno.
+.env
+.env.*
+*.key
+*.pem
+*.pub
+id_*
+*ed25519*
+known_hosts*
+authorized_keys*
+*.log
+*.bak
+*.png
+*.jpg
+*.jpeg
+*.webp
+.ssh/
+.oci/
+private/
+secrets/
