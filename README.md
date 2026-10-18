@@ -4,7 +4,9 @@ Guía general para recuperar acceso a una VM Linux de OCI cuando se pierde su cl
 
 ## Estado de validación
 
-Se comprobó autenticación mediante una sesión **Managed SSH de Bastion** y conexión SSH directa mientras el canal temporal todavía se estaba cerrando, verificando la identidad del servidor previamente registrada. **La prueba posterior a la eliminación final falló: el acceso permanente aún no está recuperado.** La misma clave se había usado para Bastion y para la entrada que se pretendía conservar. Se está corrigiendo el procedimiento con claves distintas y verificación después de la limpieza completa.
+**Recuperación permanente comprobada.** Se accedió mediante una sesión Managed SSH de Bastion con una clave temporal distinta; se instaló la clave permanente en un archivo independiente y se configuró SSH para consultarlo solo para el usuario objetivo. La conexión directa con la clave permanente pasó **después de confirmar los bastiones eliminados y el plugin desactivado**. También se retiraron la política IAM y el grupo dinámico temporales. Se conservó la verificación contra la identidad del servidor registrada anteriormente y la autenticación por contraseña permaneció desactivada.
+
+La primera prueba había dado un éxito transitorio: usar la misma clave de Bastion en el archivo que gestiona el agente no conservó el acceso al terminar la limpieza. Por eso el procedimiento exige separar las claves y verificar después del cierre completo. El resultado observado no garantiza compatibilidad con cualquier imagen o configuración.
 
 **Run Command no fue la vía de recuperación**: el diagnóstico permaneció aceptado sin respuesta y se solicitó su cancelación. No interpretar un comando aceptado por OCI como un comando ejecutado dentro de Linux. El resultado observado con Bastion no garantiza que el procedimiento funcione en cualquier imagen o configuración.
 
@@ -93,6 +95,21 @@ Continuar únicamente si se ha confirmado un método administrativo autorizado y
 - Mantener propietario correcto, directorio `.ssh` con modo `700`, archivo `authorized_keys` con modo `600` y contexto SELinux adecuado.
 - No habilitar contraseñas ni desactivar la verificación de identidad del servidor para resolver este problema.
 
+### Separar las claves permanentes de las gestionadas por el agente
+
+En el entorno observado, el agente mantenía un respaldo de `authorized_keys` y el acceso agregado allí dejó de funcionar al cerrar Bastion. No modificar a ciegas los respaldos del agente. Una alternativa administrativa es conservar el archivo habitual y configurar **otro archivo de claves para el usuario objetivo**, mediante `AuthorizedKeysFile`.
+
+Por ejemplo, después de comprobar la configuración efectiva y las rutas actuales, un bloque al final de `sshd_config` puede limitar el cambio al usuario correspondiente:
+
+```text
+Match User <OS_USER>
+    AuthorizedKeysFile .ssh/authorized_keys .ssh/authorized_keys_permanent
+```
+
+El ejemplo presupone que `.ssh/authorized_keys` es la ruta previa: preservar todas las rutas efectivamente configuradas. Instalar exclusivamente la clave pública permanente en el segundo archivo, con propietario correcto, modo `600` y contexto SELinux apropiado. Respaldar la configuración, validarla con `sshd -t` y comprobar el resultado de `sshd -T -C` para ese usuario **antes de recargar** el servicio. Si la validación falla, restaurar la configuración anterior y no recargar.
+
+Probar la clave permanente en una conexión nueva. Luego eliminar el canal temporal, esperar su estado terminal, restaurar el estado previo del plugin y repetir la conexión. Solo esta última prueba demuestra que el acceso no dependía de Bastion.
+
 Si `ocarun` no tiene permisos suficientes, detener esta vía. Evaluar la consola serie y el procedimiento oficial de recuperación con una ventana de mantenimiento. No ampliar privilegios del agente de forma general ni reemplazar el volumen sin un plan de respaldo.
 
 ## 5. Verificar SSH y cerrar la recuperación
@@ -133,6 +150,7 @@ Revisar también los metadatos de commits, archivos preparados para commit e his
 - [Troubleshooting the SSH Connection](https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/troubleshooting-ssh-connection.htm)
 - [Creating a Managed SSH Session in Bastion](https://docs.oracle.com/en-us/iaas/Content/Bastion/Tasks/create-session-managed-ssh.htm)
 - [Connecting to a Managed SSH Session](https://docs.oracle.com/en-us/iaas/Content/Bastion/Tasks/connect-managed-ssh.htm)
+- [OpenSSH: sshd_config y AuthorizedKeysFile](https://man.openbsd.org/sshd_config)
 - [Always Free Resources](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm)
 
 Consultar las versiones vigentes de estas páginas antes de aplicar el procedimiento.
