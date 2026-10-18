@@ -4,7 +4,9 @@ Guía general para recuperar acceso a una VM Linux de OCI cuando se pierde su cl
 
 ## Estado de validación
 
-Procedimiento en documentación y validación. Se ha comprobado la configuración de un grupo dinámico y una política acotada; **todavía no se ha demostrado una recuperación SSH completa mediante Run Command**. No interpretar un comando aceptado por OCI como un comando ejecutado dentro de Linux. Esta sección se actualizará cuando haya evidencia del resultado.
+Se comprobó autenticación mediante una sesión **Managed SSH de Bastion** y conexión SSH directa mientras el canal temporal todavía se estaba cerrando, verificando la identidad del servidor previamente registrada. **La prueba posterior a la eliminación final falló: el acceso permanente aún no está recuperado.** La misma clave se había usado para Bastion y para la entrada que se pretendía conservar. Se está corrigiendo el procedimiento con claves distintas y verificación después de la limpieza completa.
+
+**Run Command no fue la vía de recuperación**: el diagnóstico permaneció aceptado sin respuesta y se solicitó su cancelación. No interpretar un comando aceptado por OCI como un comando ejecutado dentro de Linux. El resultado observado con Bastion no garantiza que el procedimiento funcione en cualquier imagen o configuración.
 
 ## 1. Identificar el problema
 
@@ -75,7 +77,7 @@ Cuando el agente y el plugin Bastion estén disponibles, evaluar una sesión SSH
 1. Habilitar el plugin Bastion y verificar su estado en Oracle Cloud Agent.
 2. Crear un bastion temporal en la red de la VM. Limitar la allowlist a la IP pública del administrador con prefijo `/32`; mantener SOCKS5 desactivado si no es necesario.
 3. Limitar la duración máxima a 30 minutos.
-4. Crear una sesión de tipo **Managed SSH**, con el usuario correcto y exclusivamente la nueva clave pública. Verificar la instancia y la dirección privada de destino.
+4. Crear una sesión de tipo **Managed SSH**, con el usuario correcto y una clave pública temporal **distinta de la clave permanente** que se instalará después. Verificar la instancia y la dirección privada de destino. La limpieza del agente puede retirar la clave usada por la sesión; no confundir una conexión directa durante esa sesión con acceso permanente.
 5. Esperar a que la sesión esté activa y obtener su comando SSH desde la consola. Sustituir el marcador de clave por la ruta local de la clave privada.
 6. Verificar la identidad del servidor y demostrar autenticación antes de instalar la clave de forma permanente.
 
